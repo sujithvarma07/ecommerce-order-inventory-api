@@ -10,7 +10,13 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "products")
+@Table(
+        name = "products",
+        indexes = {
+                @Index(name = "idx_products_category_id", columnList = "category_id"),
+                @Index(name = "idx_products_sku", columnList = "sku")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,6 +45,9 @@ public class Product {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    @Version
+    private Long version;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

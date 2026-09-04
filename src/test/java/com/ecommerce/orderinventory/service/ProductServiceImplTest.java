@@ -4,6 +4,8 @@ import com.ecommerce.orderinventory.dto.ProductRequest;
 import com.ecommerce.orderinventory.dto.ProductResponse;
 import com.ecommerce.orderinventory.entity.Category;
 import com.ecommerce.orderinventory.entity.Product;
+import com.ecommerce.orderinventory.exception.DuplicateResourceException;
+import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.CategoryRepository;
 import com.ecommerce.orderinventory.repository.ProductRepository;
 import com.ecommerce.orderinventory.service.impl.ProductServiceImpl;
@@ -13,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -77,7 +78,7 @@ class ProductServiceImplTest {
         when(productRepository.existsBySkuIgnoreCase("WM-1001")).thenReturn(true);
 
         assertThatThrownBy(() -> productService.create(request))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("already exists");
 
         verify(productRepository, never()).save(any());
@@ -92,7 +93,7 @@ class ProductServiceImplTest {
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.create(request))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Category not found");
     }
 
@@ -111,7 +112,7 @@ class ProductServiceImplTest {
         when(productRepository.findById(42L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> productService.getById(42L))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("not found");
     }
 

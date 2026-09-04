@@ -6,6 +6,8 @@ import com.ecommerce.orderinventory.dto.OrderResponse;
 import com.ecommerce.orderinventory.entity.Order;
 import com.ecommerce.orderinventory.entity.OrderStatus;
 import com.ecommerce.orderinventory.entity.Product;
+import com.ecommerce.orderinventory.exception.InsufficientStockException;
+import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.OrderRepository;
 import com.ecommerce.orderinventory.repository.ProductRepository;
 import com.ecommerce.orderinventory.service.impl.OrderServiceImpl;
@@ -16,7 +18,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -75,7 +76,7 @@ class OrderServiceImplTest {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
 
         assertThatThrownBy(() -> orderService.create(request))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(InsufficientStockException.class)
                 .hasMessageContaining("Insufficient stock");
 
         verify(orderRepository, never()).save(any());
@@ -89,7 +90,7 @@ class OrderServiceImplTest {
         when(productRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.create(request))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("Product not found");
     }
 
@@ -117,7 +118,7 @@ class OrderServiceImplTest {
         when(orderRepository.findById(123L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> orderService.getById(123L))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("not found");
     }
 }

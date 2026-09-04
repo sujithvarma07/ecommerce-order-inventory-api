@@ -23,9 +23,19 @@ Running log of work on the Order & Inventory API, tracked against the 4-week pla
 - Global exception handling (`@ControllerAdvice`, standardized error response shape) is a named Week 2 item; for now, service-layer errors use `ResponseStatusException` directly, which already gives correct HTTP status codes.
 - No auth yet — that's Week 3.
 
-## Week 2 — Business Logic & Database Integration
+## Week 2 — Business Logic & Database Integration (in progress)
 
-- [ ] Not started
+- [x] Standardized exception handling and API error responses — replaced the Week 1 `ResponseStatusException` calls with a small domain exception hierarchy (`ResourceNotFoundException`, `DuplicateResourceException`, `InsufficientStockException`, `InvalidOrderStateException`) and one `GlobalExceptionHandler` (`@RestControllerAdvice`) that returns a consistent JSON error shape everywhere, including field-level detail on validation failures — see `docs/api-error-format.md`
+- [x] Optimized entities/relationships — added indexes on the columns actually being queried (`products.category_id`, `products.sku`, `orders.customer_email`, `orders.status`) and optimistic locking (`@Version` on `Product`) so concurrent stock updates fail safely instead of silently overwriting each other
+- [ ] Business logic: actually deduct stock on order placement (currently still validated only, not decremented) and restore it on cancellation
+- [ ] Order status workflow rules (using `InvalidOrderStateException`, added above but not yet wired in)
+- [ ] Expanded CRUD: stock adjustment endpoint, low-stock query
+- [ ] Logging and application-level monitoring
+- [ ] Postman collection for API testing
+
+### Notes
+
+- Tests were updated to assert against the new exception types rather than `ResponseStatusException`.
 
 ## Week 3 — Security, Performance & Integration
 

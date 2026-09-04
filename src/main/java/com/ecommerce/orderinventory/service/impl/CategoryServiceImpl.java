@@ -3,13 +3,13 @@ package com.ecommerce.orderinventory.service.impl;
 import com.ecommerce.orderinventory.dto.CategoryRequest;
 import com.ecommerce.orderinventory.dto.CategoryResponse;
 import com.ecommerce.orderinventory.entity.Category;
+import com.ecommerce.orderinventory.exception.DuplicateResourceException;
+import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.CategoryRepository;
 import com.ecommerce.orderinventory.service.CategoryService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Transactional
     public CategoryResponse create(CategoryRequest request) {
         if (categoryRepository.existsByNameIgnoreCase(request.getName())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new DuplicateResourceException(
                     "Category with name '" + request.getName() + "' already exists");
         }
 
@@ -69,8 +69,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     private Category findCategoryOrThrow(Long id) {
         return categoryRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Category not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + id));
     }
 
     private CategoryResponse toResponse(Category category) {

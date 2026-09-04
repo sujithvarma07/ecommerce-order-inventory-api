@@ -4,14 +4,14 @@ import com.ecommerce.orderinventory.dto.ProductRequest;
 import com.ecommerce.orderinventory.dto.ProductResponse;
 import com.ecommerce.orderinventory.entity.Category;
 import com.ecommerce.orderinventory.entity.Product;
+import com.ecommerce.orderinventory.exception.DuplicateResourceException;
+import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.CategoryRepository;
 import com.ecommerce.orderinventory.repository.ProductRepository;
 import com.ecommerce.orderinventory.service.ProductService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -26,7 +26,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional
     public ProductResponse create(ProductRequest request) {
         if (productRepository.existsBySkuIgnoreCase(request.getSku())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
+            throw new DuplicateResourceException(
                     "Product with SKU '" + request.getSku() + "' already exists");
         }
 
@@ -91,14 +91,12 @@ public class ProductServiceImpl implements ProductService {
 
     private Product findProductOrThrow(Long id) {
         return productRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Product not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
     }
 
     private Category findCategoryOrThrow(Long categoryId) {
         return categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Category not found with id: " + categoryId));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with id: " + categoryId));
     }
 
     private ProductResponse toResponse(Product product) {

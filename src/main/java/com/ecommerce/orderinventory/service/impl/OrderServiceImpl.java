@@ -5,14 +5,14 @@ import com.ecommerce.orderinventory.entity.Order;
 import com.ecommerce.orderinventory.entity.OrderItem;
 import com.ecommerce.orderinventory.entity.OrderStatus;
 import com.ecommerce.orderinventory.entity.Product;
+import com.ecommerce.orderinventory.exception.InsufficientStockException;
+import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.OrderRepository;
 import com.ecommerce.orderinventory.repository.ProductRepository;
 import com.ecommerce.orderinventory.service.OrderService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,11 +36,11 @@ public class OrderServiceImpl implements OrderService {
 
         for (OrderItemRequest itemRequest : request.getItems()) {
             Product product = productRepository.findById(itemRequest.getProductId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    .orElseThrow(() -> new ResourceNotFoundException(
                             "Product not found with id: " + itemRequest.getProductId()));
 
             if (product.getStockQuantity() < itemRequest.getQuantity()) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                throw new InsufficientStockException(
                         "Insufficient stock for product '" + product.getName() + "' (requested "
                                 + itemRequest.getQuantity() + ", available " + product.getStockQuantity() + ")");
             }
@@ -57,8 +57,6 @@ public class OrderServiceImpl implements OrderService {
 
         order.setTotalAmount(total);
 
-        // Note: stock is validated here but not yet decremented — actually reserving/deducting
-        // inventory on order placement is part of the Week 2 inventory work.
         Order saved = orderRepository.save(order);
         return toResponse(saved);
     }
@@ -93,8 +91,7 @@ public class OrderServiceImpl implements OrderService {
 
     private Order findOrderOrThrow(Long id) {
         return orderRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "Order not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id: " + id));
     }
 
     private OrderResponse toResponse(Order order) {

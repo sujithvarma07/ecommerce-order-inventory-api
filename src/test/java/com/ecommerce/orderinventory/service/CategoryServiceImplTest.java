@@ -3,6 +3,8 @@ package com.ecommerce.orderinventory.service;
 import com.ecommerce.orderinventory.dto.CategoryRequest;
 import com.ecommerce.orderinventory.dto.CategoryResponse;
 import com.ecommerce.orderinventory.entity.Category;
+import com.ecommerce.orderinventory.exception.DuplicateResourceException;
+import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.CategoryRepository;
 import com.ecommerce.orderinventory.service.impl.CategoryServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +13,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,7 +60,7 @@ class CategoryServiceImplTest {
         when(categoryRepository.existsByNameIgnoreCase("Electronics")).thenReturn(true);
 
         assertThatThrownBy(() -> categoryService.create(request))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(DuplicateResourceException.class)
                 .hasMessageContaining("already exists");
 
         verify(categoryRepository, never()).save(any());
@@ -79,7 +80,7 @@ class CategoryServiceImplTest {
         when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> categoryService.getById(99L))
-                .isInstanceOf(ResponseStatusException.class)
+                .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("not found");
     }
 
