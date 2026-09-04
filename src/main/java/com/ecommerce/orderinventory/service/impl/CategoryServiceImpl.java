@@ -1,0 +1,85 @@
+package com.ecommerce.orderinventory.service.impl;
+
+import com.ecommerce.orderinventory.dto.CategoryRequest;
+import com.ecommerce.orderinventory.dto.CategoryResponse;
+import com.ecommerce.orderinventory.entity.Category;
+import com.ecommerce.orderinventory.repository.CategoryRepository;
+import com.ecommerce.orderinventory.service.CategoryService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class CategoryServiceImpl implements CategoryService {
+
+    private final CategoryRepository categoryRepository;
+
+    @Override
+    @Transactional
+    public CategoryResponse create(CategoryRequest request) {
+        if (categoryRepository.existsByNameIgnoreCase(request.getName())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Category with name '" + request.getName() + "' already exists");
+        }
+
+        Category category = new Category();
+        category.setName(request.getName());
+        category.setDescription(request.getDescription());
+
+        Category saved = categoryRepository.save(category);
+        return toResponse(saved);
+    }
+
+    @Override
+    public CategoryResponse getById(Long id) {
+        Category category = findCategoryOrThrow(id);
+        return toResponse(category);
+    }
+
+    @Override
+    public List<CategoryResponse> getAll() {
+        return categoryRepository.findAll()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public CategoryResponse update(Long id, CategoryRequest request) {
+        Category category = findCategoryOrThrow(id);
+        category.setName(request.getName());
+        category.setDescription(request.getDescription());
+
+        Category updated = categoryRepository.save(category);
+        return toResponse(updated);
+    }
+
+    @Override
+    @Transactional
+    public void delete(Long id) {
+        Category category = findCategoryOrThrow(id);
+        categoryRepository.delete(category);
+    }
+
+    private Category findCategoryOrThrow(Long id) {
+        return categoryRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Category not found with id: " + id));
+    }
+
+    private CategoryResponse toResponse(Category category) {
+        return CategoryResponse.builder()
+                .id(category.getId())
+                .name(category.getName())
+                .description(category.getDescription())
+                .createdAt(category.getCreatedAt())
+                .updatedAt(category.getUpdatedAt())
+                .build();
+    }
+}
