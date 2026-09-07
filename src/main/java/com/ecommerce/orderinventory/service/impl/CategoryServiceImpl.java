@@ -8,11 +8,13 @@ import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.CategoryRepository;
 import com.ecommerce.orderinventory.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
@@ -32,6 +34,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setDescription(request.getDescription());
 
         Category saved = categoryRepository.save(category);
+        log.info("Created category id={} name={}", saved.getId(), saved.getName());
         return toResponse(saved);
     }
 
@@ -57,6 +60,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setDescription(request.getDescription());
 
         Category updated = categoryRepository.save(category);
+        log.info("Updated category id={}", updated.getId());
         return toResponse(updated);
     }
 
@@ -65,6 +69,7 @@ public class CategoryServiceImpl implements CategoryService {
     public void delete(Long id) {
         Category category = findCategoryOrThrow(id);
         categoryRepository.delete(category);
+        log.info("Deleted category id={}", id);
     }
 
     private Category findCategoryOrThrow(Long id) {

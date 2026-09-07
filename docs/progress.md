@@ -23,19 +23,21 @@ Running log of work on the Order & Inventory API, tracked against the 4-week pla
 - Global exception handling (`@ControllerAdvice`, standardized error response shape) is a named Week 2 item; for now, service-layer errors use `ResponseStatusException` directly, which already gives correct HTTP status codes.
 - No auth yet — that's Week 3.
 
-## Week 2 — Business Logic & Database Integration (in progress)
+## Week 2 — Business Logic & Database Integration ✅ complete
 
 - [x] Standardized exception handling and API error responses — replaced the Week 1 `ResponseStatusException` calls with a small domain exception hierarchy (`ResourceNotFoundException`, `DuplicateResourceException`, `InsufficientStockException`, `InvalidOrderStateException`) and one `GlobalExceptionHandler` (`@RestControllerAdvice`) that returns a consistent JSON error shape everywhere, including field-level detail on validation failures — see `docs/api-error-format.md`
 - [x] Optimized entities/relationships — added indexes on the columns actually being queried (`products.category_id`, `products.sku`, `orders.customer_email`, `orders.status`) and optimistic locking (`@Version` on `Product`) so concurrent stock updates fail safely instead of silently overwriting each other
-- [ ] Business logic: actually deduct stock on order placement (currently still validated only, not decremented) and restore it on cancellation
-- [ ] Order status workflow rules (using `InvalidOrderStateException`, added above but not yet wired in)
-- [ ] Expanded CRUD: stock adjustment endpoint, low-stock query
-- [ ] Logging and application-level monitoring
-- [ ] Postman collection for API testing
+- [x] Business logic: order placement now actually deducts stock per line item (not just validates it), and cancelling a `PENDING`/`CONFIRMED` order — or deleting one in those states — restores the stock that was deducted
+- [x] Order status workflow rules: an explicit allow-list of transitions (`PENDING -> CONFIRMED/CANCELLED`, `CONFIRMED -> SHIPPED/CANCELLED`, `SHIPPED`/`CANCELLED` are final) enforced in `updateStatus`, throwing `InvalidOrderStateException` on anything else
+- [x] Expanded CRUD: `PATCH /api/v1/products/{id}/stock` for signed stock adjustments (rejects a delta that would take stock negative) and `GET /api/v1/products/low-stock` for a low-stock report
+- [x] Logging and application-level monitoring: SLF4J logging across the service layer (create/update/delete/status-change events), a request-logging servlet filter (method, URI, status, duration), and Spring Boot Actuator (`health`, `info`, `metrics`)
+- [x] Postman collection covering every endpoint plus deliberate error-case requests — see `docs/postman/order-inventory-api.postman_collection.json`
+- [x] Test coverage extended to the new business logic: stock deduction on order creation, invalid status transitions, stock restoration on cancellation, stock-adjustment success/failure, low-stock filtering
 
 ### Notes
 
 - Tests were updated to assert against the new exception types rather than `ResponseStatusException`.
+- Stock deduction and restoration both go through `ProductRepository.save`, so the same optimistic-locking (`@Version`) protection from the entity-optimization work above also covers these paths under concurrent updates.
 
 ## Week 3 — Security, Performance & Integration
 

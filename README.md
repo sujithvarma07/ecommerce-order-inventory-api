@@ -57,7 +57,7 @@ export DB_PASSWORD=postgres
 mvn spring-boot:run -Dspring-boot.run.profiles=postgres
 ```
 
-## API Endpoints (so far)
+## API Endpoints
 
 | Method | Endpoint                  | Description            |
 |--------|----------------------------|-------------------------|
@@ -70,16 +70,49 @@ mvn spring-boot:run -Dspring-boot.run.profiles=postgres
 | GET    | `/api/v1/products`         | List all products (optionally filter with `?categoryId=`) |
 | GET    | `/api/v1/products/{id}`    | Get a product by id      |
 | PUT    | `/api/v1/products/{id}`    | Update a product         |
+| PATCH  | `/api/v1/products/{id}/stock` | Adjust stock by a signed delta (`{"delta": -10}`); rejected if it would take stock negative |
+| GET    | `/api/v1/products/low-stock?threshold=10` | List products at or below a stock threshold (defaults to 10) |
 | DELETE | `/api/v1/products/{id}`    | Delete a product         |
-| POST   | `/api/v1/orders`           | Place an order (list of `{productId, quantity}`) |
+| POST   | `/api/v1/orders`           | Place an order (list of `{productId, quantity}`) — deducts stock from each product |
 | GET    | `/api/v1/orders`           | List all orders          |
 | GET    | `/api/v1/orders/{id}`      | Get an order by id       |
-| PATCH  | `/api/v1/orders/{id}/status` | Update an order's status (`PENDING`/`CONFIRMED`/`SHIPPED`/`CANCELLED`) |
-| DELETE | `/api/v1/orders/{id}`      | Delete an order          |
+| PATCH  | `/api/v1/orders/{id}/status` | Update an order's status (`PENDING`/`CONFIRMED`/`SHIPPED`/`CANCELLED`), enforcing the allowed transitions below |
+| DELETE | `/api/v1/orders/{id}`      | Delete an order — restores stock if the order was still `PENDING`/`CONFIRMED` |
 
-This closes out the week 1 scope (Category, Product, Order — CRUD, validation, JPA persistence, unit tests). Inventory deduction and richer business rules are next.
+### Order status transitions
+
+```
+PENDING   -> CONFIRMED, CANCELLED
+CONFIRMED -> SHIPPED, CANCELLED
+SHIPPED   -> (final state, no further transitions)
+CANCELLED -> (final state, no further transitions)
+```
+
+Moving an order to `CANCELLED` from `PENDING` or `CONFIRMED` restores the stock that was deducted when the order was placed. An unlisted transition (e.g. `SHIPPED` -> `PENDING`) is rejected with a 409 and a message naming both states.
+
+## Error responses
+
+All error responses (validation failures, not-found, conflicts, unexpected exceptions) share one JSON shape, produced by a single `@RestControllerAdvice`. See [`docs/api-error-format.md`](docs/api-error-format.md) for the exact structure and examples, including how field-level validation errors are reported.
+
+## Monitoring
+
+Spring Boot Actuator is enabled with the `health`, `info`, and `metrics` endpoints exposed:
+
+| Endpoint | Description |
+|----------|-------------|
+| `GET /actuator/health` | Application health/status |
+| `GET /actuator/info`   | Build/app info |
+| `GET /actuator/metrics` | Available metrics |
+
+Every request is also logged (method, URI, response status, duration) via a servlet filter, excluding `/actuator/**` paths to keep health-check polling out of the logs.
+
+## API testing
+
+A Postman collection covering every endpoint above — plus a handful of deliberate error-case requests (duplicate SKU, validation failure, not-found, insufficient stock, invalid status transition) — is at [`docs/postman/order-inventory-api.postman_collection.json`](docs/postman/order-inventory-api.postman_collection.json). Import it into Postman and set the `baseUrl` collection variable (defaults to `http://localhost:8080`).
 
 ## Documentation
 
 - [`docs/coding-standards.md`](docs/coding-standards.md) — coding conventions used in this project
+- [`docs/api-error-format.md`](docs/api-error-format.md) — standardized error response shape
+- [`docs/postman/order-inventory-api.postman_collection.json`](docs/postman/order-inventory-api.postman_collection.json) — Postman collection for manual API testing
 - [`docs/progress.md`](docs/progress.md) — running log of what's been built

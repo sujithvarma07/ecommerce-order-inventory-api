@@ -18,4 +18,8 @@ public interface ProductService {
     ProductResponse update(Long id, ProductRequest request);
 
     void delete(Long id);
+
+    ProductResponse adjustStock(Long id, int delta);
+
+    List<ProductResponse> getLowStock(int threshold);
 }

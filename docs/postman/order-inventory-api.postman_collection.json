@@ -1,0 +1,302 @@
+{
+  "info": {
+    "name": "Order & Inventory API",
+    "description": "Requests covering the Category, Product, and Order endpoints, including the Week 2 stock-adjustment, low-stock, and order-status-transition additions, plus a few deliberate error cases exercising the global exception handler.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "categoryId", "value": "1" },
+    { "key": "productId", "value": "1" },
+    { "key": "orderId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronics\",\n  \"description\": \"Electronics and accessories\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/categories"
+          }
+        },
+        {
+          "name": "List Categories",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/categories"
+          }
+        },
+        {
+          "name": "Get Category by Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Electronics & Gadgets\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/categories/{{categoryId}}"
+          }
+        },
+        {
+          "name": "Delete Category",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/categories/{{categoryId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Wireless Mouse\",\n  \"description\": \"2.4GHz wireless mouse\",\n  \"sku\": \"WM-1001\",\n  \"price\": 19.99,\n  \"stockQuantity\": 150,\n  \"categoryId\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/products"
+          }
+        },
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/products"
+          }
+        },
+        {
+          "name": "List Products by Category",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/products?categoryId={{categoryId}}"
+          }
+        },
+        {
+          "name": "Get Product by Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/products/{{productId}}"
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Wireless Mouse\",\n  \"description\": \"2.4GHz wireless mouse, updated\",\n  \"sku\": \"WM-1001\",\n  \"price\": 17.99,\n  \"stockQuantity\": 150,\n  \"categoryId\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/products/{{productId}}"
+          }
+        },
+        {
+          "name": "Adjust Stock (increase)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"delta\": 25\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/products/{{productId}}/stock"
+          }
+        },
+        {
+          "name": "Adjust Stock (decrease)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"delta\": -10\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/products/{{productId}}/stock"
+          }
+        },
+        {
+          "name": "Get Low Stock Products",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/products/low-stock?threshold=10"
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/products/{{productId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Jane Doe\",\n  \"customerEmail\": \"jane@example.com\",\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 3 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/orders"
+          }
+        },
+        {
+          "name": "List Orders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/orders"
+          }
+        },
+        {
+          "name": "Get Order by Id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}"
+          }
+        },
+        {
+          "name": "Update Order Status (Confirm)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}/status"
+          }
+        },
+        {
+          "name": "Update Order Status (Cancel)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CANCELLED\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}/status"
+          }
+        },
+        {
+          "name": "Delete Order",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "Create Product - Duplicate SKU (409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Wireless Mouse Duplicate\",\n  \"description\": \"Should fail on SKU uniqueness\",\n  \"sku\": \"WM-1001\",\n  \"price\": 19.99,\n  \"stockQuantity\": 10,\n  \"categoryId\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/products"
+          }
+        },
+        {
+          "name": "Create Product - Validation Failure (400)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"\",\n  \"sku\": \"\",\n  \"price\": -5,\n  \"stockQuantity\": -1\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/products"
+          }
+        },
+        {
+          "name": "Get Product - Not Found (404)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/v1/products/999999"
+          }
+        },
+        {
+          "name": "Create Order - Insufficient Stock (409)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Jane Doe\",\n  \"customerEmail\": \"jane@example.com\",\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 999999 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/orders"
+          }
+        },
+        {
+          "name": "Update Order Status - Invalid Transition (409)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PENDING\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}/status",
+            "description": "Expected to fail once the order has already moved to SHIPPED or CANCELLED — those states have no allowed outgoing transitions."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Monitoring",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/health"
+          }
+        },
+        {
+          "name": "App Info",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/info"
+          }
+        },
+        {
+          "name": "Metrics",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/actuator/metrics"
+          }
+        }
+      ]
+    }
+  ]
+}

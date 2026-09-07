@@ -2,6 +2,7 @@ package com.ecommerce.orderinventory.controller;
 
 import com.ecommerce.orderinventory.dto.ProductRequest;
 import com.ecommerce.orderinventory.dto.ProductResponse;
+import com.ecommerce.orderinventory.dto.StockAdjustmentRequest;
 import com.ecommerce.orderinventory.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,5 +49,17 @@ public class ProductController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         productService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/stock")
+    public ResponseEntity<ProductResponse> adjustStock(@PathVariable Long id,
+                                                         @Valid @RequestBody StockAdjustmentRequest request) {
+        return ResponseEntity.ok(productService.adjustStock(id, request.getDelta()));
+    }
+
+    @GetMapping("/low-stock")
+    public ResponseEntity<List<ProductResponse>> getLowStock(
+            @RequestParam(defaultValue = "10") int threshold) {
+        return ResponseEntity.ok(productService.getLowStock(threshold));
     }
 }

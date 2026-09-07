@@ -6,23 +6,39 @@ import com.ecommerce.orderinventory.entity.OrderItem;
 import com.ecommerce.orderinventory.entity.OrderStatus;
 import com.ecommerce.orderinventory.entity.Product;
 import com.ecommerce.orderinventory.exception.InsufficientStockException;
+import com.ecommerce.orderinventory.exception.InvalidOrderStateException;
 import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.OrderRepository;
 import com.ecommerce.orderinventory.repository.ProductRepository;
 import com.ecommerce.orderinventory.service.OrderService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+
+    private static final Map<OrderStatus, Set<OrderStatus>> ALLOWED_TRANSITIONS = new EnumMap<>(OrderStatus.class);
+
+    static {
+        ALLOWED_TRANSITIONS.put(OrderStatus.PENDING, EnumSet.of(OrderStatus.CONFIRMED, OrderStatus.CANCELLED));
+        ALLOWED_TRANSITIONS.put(OrderStatus.CONFIRMED, EnumSet.of(OrderStatus.SHIPPED, OrderStatus.CANCELLED));
+        ALLOWED_TRANSITIONS.put(OrderStatus.SHIPPED, EnumSet.noneOf(OrderStatus.class));
+        ALLOWED_TRANSITIONS.put(OrderStatus.CANCELLED, EnumSet.noneOf(OrderStatus.class));
+    }
 
     @Override
     @Transactional
@@ -45,6 +61,9 @@ public class OrderServiceImpl implements OrderService {
                                 + itemRequest.getQuantity() + ", available " + product.getStockQuantity() + ")");
             }
 
+            product.setStockQuantity(product.getStockQuantity() - itemRequest.getQuantity());
+            productRepository.save(product);
+
             OrderItem item = new OrderItem();
             item.setProduct(product);
             item.setQuantity(itemRequest.getQuantity());
@@ -58,6 +77,8 @@ public class OrderServiceImpl implements OrderService {
         order.setTotalAmount(total);
 
         Order saved = orderRepository.save(order);
+        log.info("Created order id={} for customerEmail={} total={}", saved.getId(),
+                saved.getCustomerEmail(), saved.getTotalAmount());
         return toResponse(saved);
     }
 
@@ -76,17 +97,47 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponse updateStatus(Long id, OrderStatus status) {
+    public OrderResponse updateStatus(Long id, OrderStatus newStatus) {
         Order order = findOrderOrThrow(id);
-        order.setStatus(status);
-        return toResponse(orderRepository.save(order));
+        OrderStatus currentStatus = order.getStatus();
+
+        if (currentStatus == newStatus) {
+            return toResponse(order);
+        }
+
+        Set<OrderStatus> allowed = ALLOWED_TRANSITIONS.getOrDefault(currentStatus, EnumSet.noneOf(OrderStatus.class));
+        if (!allowed.contains(newStatus)) {
+            throw new InvalidOrderStateException(
+                    "Cannot move order from " + currentStatus + " to " + newStatus);
+        }
+
+        if (newStatus == OrderStatus.CANCELLED) {
+            restoreStock(order);
+        }
+
+        order.setStatus(newStatus);
+        Order updated = orderRepository.save(order);
+        log.info("Order id={} status changed {} -> {}", id, currentStatus, newStatus);
+        return toResponse(updated);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         Order order = findOrderOrThrow(id);
+        if (order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.CONFIRMED) {
+            restoreStock(order);
+        }
         orderRepository.delete(order);
+        log.info("Deleted order id={}", id);
+    }
+
+    private void restoreStock(Order order) {
+        for (OrderItem item : order.getItems()) {
+            Product product = item.getProduct();
+            product.setStockQuantity(product.getStockQuantity() + item.getQuantity());
+            productRepository.save(product);
+        }
     }
 
     private Order findOrderOrThrow(Long id) {

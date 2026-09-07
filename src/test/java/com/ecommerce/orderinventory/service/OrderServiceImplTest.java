@@ -4,9 +4,11 @@ import com.ecommerce.orderinventory.dto.OrderItemRequest;
 import com.ecommerce.orderinventory.dto.OrderRequest;
 import com.ecommerce.orderinventory.dto.OrderResponse;
 import com.ecommerce.orderinventory.entity.Order;
+import com.ecommerce.orderinventory.entity.OrderItem;
 import com.ecommerce.orderinventory.entity.OrderStatus;
 import com.ecommerce.orderinventory.entity.Product;
 import com.ecommerce.orderinventory.exception.InsufficientStockException;
+import com.ecommerce.orderinventory.exception.InvalidOrderStateException;
 import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.OrderRepository;
 import com.ecommerce.orderinventory.repository.ProductRepository;
@@ -66,6 +68,9 @@ class OrderServiceImplTest {
         assertThat(response.getTotalAmount()).isEqualByComparingTo("60.00");
         assertThat(response.getItems()).hasSize(1);
         assertThat(response.getItems().get(0).getSubtotal()).isEqualByComparingTo("60.00");
+
+        assertThat(product.getStockQuantity()).isEqualTo(7);
+        verify(productRepository).save(product);
     }
 
     @Test
@@ -111,6 +116,46 @@ class OrderServiceImplTest {
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
         verify(orderRepository).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void updateStatus_rejectsInvalidTransition() {
+        Order order = new Order();
+        order.setId(6L);
+        order.setStatus(OrderStatus.SHIPPED);
+        order.setTotalAmount(BigDecimal.TEN);
+
+        when(orderRepository.findById(6L)).thenReturn(Optional.of(order));
+
+        assertThatThrownBy(() -> orderService.updateStatus(6L, OrderStatus.PENDING))
+                .isInstanceOf(InvalidOrderStateException.class)
+                .hasMessageContaining("Cannot move order");
+
+        verify(orderRepository, never()).save(any());
+    }
+
+    @Test
+    void updateStatus_restoresStock_whenOrderIsCancelled() {
+        OrderItem item = new OrderItem();
+        item.setProduct(product);
+        item.setQuantity(4);
+        item.setUnitPrice(product.getPrice());
+        item.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(4)));
+
+        Order order = new Order();
+        order.setId(7L);
+        order.setStatus(OrderStatus.PENDING);
+        order.setTotalAmount(BigDecimal.valueOf(80));
+        order.addItem(item);
+
+        when(orderRepository.findById(7L)).thenReturn(Optional.of(order));
+        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        OrderResponse response = orderService.updateStatus(7L, OrderStatus.CANCELLED);
+
+        assertThat(response.getStatus()).isEqualTo(OrderStatus.CANCELLED);
+        assertThat(product.getStockQuantity()).isEqualTo(14);
+        verify(productRepository).save(product);
     }
 
     @Test

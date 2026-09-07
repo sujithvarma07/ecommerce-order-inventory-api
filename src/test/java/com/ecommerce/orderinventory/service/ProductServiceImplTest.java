@@ -5,6 +5,7 @@ import com.ecommerce.orderinventory.dto.ProductResponse;
 import com.ecommerce.orderinventory.entity.Category;
 import com.ecommerce.orderinventory.entity.Product;
 import com.ecommerce.orderinventory.exception.DuplicateResourceException;
+import com.ecommerce.orderinventory.exception.InsufficientStockException;
 import com.ecommerce.orderinventory.exception.ResourceNotFoundException;
 import com.ecommerce.orderinventory.repository.CategoryRepository;
 import com.ecommerce.orderinventory.repository.ProductRepository;
@@ -12,11 +13,13 @@ import com.ecommerce.orderinventory.service.impl.ProductServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -123,5 +126,48 @@ class ProductServiceImplTest {
         productService.delete(1L);
 
         verify(productRepository).delete(product);
+    }
+
+    @Test
+    void adjustStock_increasesQuantity_whenDeltaIsPositive() {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProductResponse response = productService.adjustStock(1L, 25);
+
+        assertThat(response.getStockQuantity()).isEqualTo(175);
+
+        ArgumentCaptor<Product> captor = ArgumentCaptor.forClass(Product.class);
+        verify(productRepository).save(captor.capture());
+        assertThat(captor.getValue().getStockQuantity()).isEqualTo(175);
+    }
+
+    @Test
+    void adjustStock_throwsConflict_whenResultingQuantityIsNegative() {
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+
+        assertThatThrownBy(() -> productService.adjustStock(1L, -200))
+                .isInstanceOf(InsufficientStockException.class)
+                .hasMessageContaining("Cannot adjust stock");
+
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void getLowStock_returnsOnlyProductsAtOrBelowThreshold() {
+        Product lowStockProduct = new Product();
+        lowStockProduct.setId(2L);
+        lowStockProduct.setName("USB Cable");
+        lowStockProduct.setSku("UC-2002");
+        lowStockProduct.setPrice(new BigDecimal("5.99"));
+        lowStockProduct.setStockQuantity(3);
+        lowStockProduct.setCategory(category);
+
+        when(productRepository.findByStockQuantityLessThanEqual(5)).thenReturn(List.of(lowStockProduct));
+
+        List<ProductResponse> response = productService.getLowStock(5);
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).getSku()).isEqualTo("UC-2002");
     }
 }
