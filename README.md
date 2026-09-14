@@ -90,6 +90,17 @@ CANCELLED -> (final state, no further transitions)
 
 Moving an order to `CANCELLED` from `PENDING` or `CONFIRMED` restores the stock that was deducted when the order was placed. An unlisted transition (e.g. `SHIPPED` -> `PENDING`) is rejected with a 409 and a message naming both states.
 
+## Authentication & authorization
+
+The API uses Spring Security with HTTP Basic auth and role-based access control:
+
+- All `GET` endpoints under `/api/v1/**` are public (no auth required) so the catalog and order data can be browsed freely.
+- `POST`, `PUT`, `PATCH`, and `DELETE` under `/api/v1/**` require authentication with the `ADMIN` role.
+- `/actuator/health` and `/actuator/info` are public; other actuator endpoints (e.g. `/actuator/metrics`) require authentication.
+- Credentials live in the `app_users` table (`username`, BCrypt-hashed `password`, `role`), backed by a `UserDetailsService` that loads from the database rather than an in-memory list.
+- A default admin user is seeded on startup if one doesn't already exist, using `app.security.admin-username` / `app.security.admin-password` (env vars `ADMIN_USERNAME` / `ADMIN_PASSWORD`, defaulting to `admin` / `admin123` for local dev — override these for anything beyond local dev).
+- Authentication and authorization failures return the same standardized JSON error shape as the rest of the API (401 / 403) instead of Spring Security's default HTML/plain-text responses.
+
 ## Error responses
 
 All error responses (validation failures, not-found, conflicts, unexpected exceptions) share one JSON shape, produced by a single `@RestControllerAdvice`. See [`docs/api-error-format.md`](docs/api-error-format.md) for the exact structure and examples, including how field-level validation errors are reported.
@@ -102,7 +113,7 @@ Spring Boot Actuator is enabled with the `health`, `info`, and `metrics` endpoin
 |----------|-------------|
 | `GET /actuator/health` | Application health/status |
 | `GET /actuator/info`   | Build/app info |
-| `GET /actuator/metrics` | Available metrics |
+| `GET /actuator/metrics` | Available metrics (requires authentication) |
 
 Every request is also logged (method, URI, response status, duration) via a servlet filter, excluding `/actuator/**` paths to keep health-check polling out of the logs.
 

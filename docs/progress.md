@@ -39,9 +39,16 @@ Running log of work on the Order & Inventory API, tracked against the 4-week pla
 - Tests were updated to assert against the new exception types rather than `ResponseStatusException`.
 - Stock deduction and restoration both go through `ProductRepository.save`, so the same optimistic-locking (`@Version`) protection from the entity-optimization work above also covers these paths under concurrent updates.
 
-## Week 3 — Security, Performance & Integration
+## Week 3 — Security, Performance & Integration (in progress)
 
-- [ ] Not started
+- [x] Authentication & authorization (part 1/3) — added Spring Security with HTTP Basic auth and role-based access control: `GET` endpoints stay public, write operations (`POST`/`PUT`/`PATCH`/`DELETE`) require the `ADMIN` role. Credentials are stored in a new `app_users` table (BCrypt-hashed passwords) via a database-backed `UserDetailsService`, with a default admin user seeded on startup for local dev. Authentication/authorization failures (401/403) go through the same standardized JSON error shape as the rest of the API rather than Spring Security's defaults.
+- [ ] Performance (part 2/3) — pagination/sorting on list endpoints, caching for frequently-read data, connection pool tuning
+- [ ] Integration & polish (part 3/3) — CORS configuration, API documentation (OpenAPI/Swagger), rate limiting
+
+### Notes
+
+- `/actuator/metrics` now requires authentication (previously public in Week 2) since it can leak operational detail; `/actuator/health` and `/actuator/info` stay public for uptime checks.
+- CSRF is disabled and sessions are stateless, appropriate for a token/credential-per-request REST API rather than a browser session-based app.
 
 ## Week 4 — Testing, Deployment & Documentation
 

@@ -55,6 +55,11 @@ spring:
 server:
   port: 8080
 
+app:
+  security:
+    admin-username: ${ADMIN_USERNAME:admin}
+    admin-password: ${ADMIN_PASSWORD:admin123}
+
 management:
   endpoints:
     web:
