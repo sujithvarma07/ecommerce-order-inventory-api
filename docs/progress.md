@@ -42,13 +42,16 @@ Running log of work on the Order & Inventory API, tracked against the 4-week pla
 ## Week 3 — Security, Performance & Integration (in progress)
 
 - [x] Authentication & authorization (part 1/3) — added Spring Security with HTTP Basic auth and role-based access control: `GET` endpoints stay public, write operations (`POST`/`PUT`/`PATCH`/`DELETE`) require the `ADMIN` role. Credentials are stored in a new `app_users` table (BCrypt-hashed passwords) via a database-backed `UserDetailsService`, with a default admin user seeded on startup for local dev. Authentication/authorization failures (401/403) go through the same standardized JSON error shape as the rest of the API rather than Spring Security's defaults.
-- [ ] Performance (part 2/3) — pagination/sorting on list endpoints, caching for frequently-read data, connection pool tuning
+- [x] Performance (part 2/3) — the three list endpoints (`GET /categories`, `GET /products`, `GET /orders`) now return a paginated, sortable `Page` instead of a bare array; added `@Cacheable`/`@CacheEvict` around the by-id lookups for categories and products (evicted on every write, including stock adjustment, so nothing stale is ever served); tuned HikariCP explicitly per profile instead of leaving it on defaults, with the Postgres pool size overridable via env vars; marked all read-only service methods `@Transactional(readOnly = true)`
 - [ ] Integration & polish (part 3/3) — CORS configuration, API documentation (OpenAPI/Swagger), rate limiting
 
 ### Notes
 
 - `/actuator/metrics` now requires authentication (previously public in Week 2) since it can leak operational detail; `/actuator/health` and `/actuator/info` stay public for uptime checks.
 - CSRF is disabled and sessions are stateless, appropriate for a token/credential-per-request REST API rather than a browser session-based app.
+- `ProductRepository.findByCategoryId` and the plain `getAll()` service methods became paginated overloads (`Pageable` in, `Page<...>` out) rather than staying as separate unpaginated methods, to avoid maintaining two versions of the same query.
+- Caching is in-process (`ConcurrentMapCacheManager`) for now, which is correct for a single instance; swapping in a shared cache for a multi-instance deployment is a `CacheManager` bean change, not a service-layer change.
+- Tests were extended to cover the new paginated `getAll`/`getByCategory` methods using `PageImpl`/`PageRequest`.
 
 ## Week 4 — Testing, Deployment & Documentation
 

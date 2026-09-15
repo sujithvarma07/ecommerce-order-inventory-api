@@ -39,7 +39,16 @@
           "name": "List Categories",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/categories"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/categories?page=0&size=20&sort=id,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "categories"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "id,asc" }
+              ]
+            }
           }
         },
         {
@@ -89,14 +98,32 @@
           "name": "List Products",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/products"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products?page=0&size=20&sort=price,desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "price,desc" }
+              ]
+            }
           }
         },
         {
           "name": "List Products by Category",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/products?categoryId={{categoryId}}"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/products?categoryId={{categoryId}}&page=0&size=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "products"],
+              "query": [
+                { "key": "categoryId", "value": "{{categoryId}}" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" }
+              ]
+            }
           }
         },
         {
@@ -177,7 +204,16 @@
           "name": "List Orders",
           "request": {
             "method": "GET",
-            "url": "{{baseUrl}}/api/v1/orders"
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/orders?page=0&size=20&sort=createdAt,desc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "orders"],
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "20" },
+                { "key": "sort", "value": "createdAt,desc" }
+              ]
+            }
           }
         },
         {

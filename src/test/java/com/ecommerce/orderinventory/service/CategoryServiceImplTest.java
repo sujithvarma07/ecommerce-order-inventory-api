@@ -13,6 +13,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -85,13 +89,14 @@ class CategoryServiceImplTest {
     }
 
     @Test
-    void getAll_returnsMappedList() {
-        when(categoryRepository.findAll()).thenReturn(List.of(category));
+    void getAll_returnsMappedPage() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(categoryRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(category), pageable, 1));
 
-        List<CategoryResponse> responses = categoryService.getAll();
+        Page<CategoryResponse> responses = categoryService.getAll(pageable);
 
-        assertThat(responses).hasSize(1);
-        assertThat(responses.get(0).getName()).isEqualTo("Electronics");
+        assertThat(responses.getTotalElements()).isEqualTo(1);
+        assertThat(responses.getContent().get(0).getName()).isEqualTo("Electronics");
     }
 
     @Test

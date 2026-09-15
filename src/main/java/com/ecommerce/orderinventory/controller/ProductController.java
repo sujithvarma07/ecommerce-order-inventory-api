@@ -6,6 +6,9 @@ import com.ecommerce.orderinventory.dto.StockAdjustmentRequest;
 import com.ecommerce.orderinventory.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,12 +34,13 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> getAll(
-            @RequestParam(required = false) Long categoryId) {
+    public ResponseEntity<Page<ProductResponse>> getAll(
+            @RequestParam(required = false) Long categoryId,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         if (categoryId != null) {
-            return ResponseEntity.ok(productService.getByCategory(categoryId));
+            return ResponseEntity.ok(productService.getByCategory(categoryId, pageable));
         }
-        return ResponseEntity.ok(productService.getAll());
+        return ResponseEntity.ok(productService.getAll(pageable));
     }
 
     @PutMapping("/{id}")

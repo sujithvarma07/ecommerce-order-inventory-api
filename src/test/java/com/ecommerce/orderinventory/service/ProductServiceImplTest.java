@@ -17,6 +17,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -151,6 +155,30 @@ class ProductServiceImplTest {
                 .hasMessageContaining("Cannot adjust stock");
 
         verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void getAll_returnsMappedPage() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(productRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(product), pageable, 1));
+
+        Page<ProductResponse> response = productService.getAll(pageable);
+
+        assertThat(response.getTotalElements()).isEqualTo(1);
+        assertThat(response.getContent().get(0).getSku()).isEqualTo("WM-1001");
+    }
+
+    @Test
+    void getByCategory_returnsMappedPage_whenCategoryExists() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.findByCategoryId(1L, pageable))
+                .thenReturn(new PageImpl<>(List.of(product), pageable, 1));
+
+        Page<ProductResponse> response = productService.getByCategory(1L, pageable);
+
+        assertThat(response.getTotalElements()).isEqualTo(1);
+        assertThat(response.getContent().get(0).getCategoryId()).isEqualTo(1L);
     }
 
     @Test

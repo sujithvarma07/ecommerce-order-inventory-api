@@ -9,10 +9,12 @@ import com.ecommerce.orderinventory.repository.CategoryRepository;
 import com.ecommerce.orderinventory.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Slf4j
 @Service
@@ -39,21 +41,22 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "categories", key = "#id")
     public CategoryResponse getById(Long id) {
         Category category = findCategoryOrThrow(id);
         return toResponse(category);
     }
 
     @Override
-    public List<CategoryResponse> getAll() {
-        return categoryRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    @Transactional(readOnly = true)
+    public Page<CategoryResponse> getAll(Pageable pageable) {
+        return categoryRepository.findAll(pageable).map(this::toResponse);
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "categories", key = "#id")
     public CategoryResponse update(Long id, CategoryRequest request) {
         Category category = findCategoryOrThrow(id);
         category.setName(request.getName());
@@ -66,6 +69,7 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "categories", key = "#id")
     public void delete(Long id) {
         Category category = findCategoryOrThrow(id);
         categoryRepository.delete(category);

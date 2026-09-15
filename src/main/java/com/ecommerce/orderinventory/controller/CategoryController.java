@@ -5,11 +5,12 @@ import com.ecommerce.orderinventory.dto.CategoryResponse;
 import com.ecommerce.orderinventory.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/categories")
@@ -30,8 +31,9 @@ public class CategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<List<CategoryResponse>> getAll() {
-        return ResponseEntity.ok(categoryService.getAll());
+    public ResponseEntity<Page<CategoryResponse>> getAll(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(categoryService.getAll(pageable));
     }
 
     @PutMapping("/{id}")

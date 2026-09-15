@@ -20,6 +20,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -116,6 +120,22 @@ class OrderServiceImplTest {
         ArgumentCaptor<Order> captor = ArgumentCaptor.forClass(Order.class);
         verify(orderRepository).save(captor.capture());
         assertThat(captor.getValue().getStatus()).isEqualTo(OrderStatus.CONFIRMED);
+    }
+
+    @Test
+    void getAll_returnsMappedPage() {
+        Order order = new Order();
+        order.setId(5L);
+        order.setStatus(OrderStatus.PENDING);
+        order.setTotalAmount(BigDecimal.TEN);
+
+        Pageable pageable = PageRequest.of(0, 20);
+        when(orderRepository.findAll(pageable)).thenReturn(new PageImpl<>(List.of(order), pageable, 1));
+
+        Page<OrderResponse> response = orderService.getAll(pageable);
+
+        assertThat(response.getTotalElements()).isEqualTo(1);
+        assertThat(response.getContent().get(0).getId()).isEqualTo(5L);
     }
 
     @Test

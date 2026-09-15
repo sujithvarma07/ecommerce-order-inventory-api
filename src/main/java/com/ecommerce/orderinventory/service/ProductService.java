@@ -2,6 +2,8 @@ package com.ecommerce.orderinventory.service;
 
 import com.ecommerce.orderinventory.dto.ProductRequest;
 import com.ecommerce.orderinventory.dto.ProductResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
@@ -11,9 +13,9 @@ public interface ProductService {
 
     ProductResponse getById(Long id);
 
-    List<ProductResponse> getAll();
+    Page<ProductResponse> getAll(Pageable pageable);
 
-    List<ProductResponse> getByCategory(Long categoryId);
+    Page<ProductResponse> getByCategory(Long categoryId, Pageable pageable);
 
     ProductResponse update(Long id, ProductRequest request);
 

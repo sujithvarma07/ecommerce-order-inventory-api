@@ -3,8 +3,8 @@ package com.ecommerce.orderinventory.service;
 import com.ecommerce.orderinventory.dto.OrderRequest;
 import com.ecommerce.orderinventory.dto.OrderResponse;
 import com.ecommerce.orderinventory.entity.OrderStatus;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface OrderService {
 
@@ -12,7 +12,7 @@ public interface OrderService {
 
     OrderResponse getById(Long id);
 
-    List<OrderResponse> getAll();
+    Page<OrderResponse> getAll(Pageable pageable);
 
     OrderResponse updateStatus(Long id, OrderStatus status);
 

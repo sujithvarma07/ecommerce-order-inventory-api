@@ -6,11 +6,13 @@ import com.ecommerce.orderinventory.dto.OrderStatusUpdateRequest;
 import com.ecommerce.orderinventory.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -31,8 +33,9 @@ public class OrderController {
     }
 
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> getAll() {
-        return ResponseEntity.ok(orderService.getAll());
+    public ResponseEntity<Page<OrderResponse>> getAll(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(orderService.getAll(pageable));
     }
 
     @PatchMapping("/{id}/status")

@@ -2,8 +2,8 @@ package com.ecommerce.orderinventory.service;
 
 import com.ecommerce.orderinventory.dto.CategoryRequest;
 import com.ecommerce.orderinventory.dto.CategoryResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface CategoryService {
 
@@ -11,7 +11,7 @@ public interface CategoryService {
 
     CategoryResponse getById(Long id);
 
-    List<CategoryResponse> getAll();
+    Page<CategoryResponse> getAll(Pageable pageable);
 
     CategoryResponse update(Long id, CategoryRequest request);
 

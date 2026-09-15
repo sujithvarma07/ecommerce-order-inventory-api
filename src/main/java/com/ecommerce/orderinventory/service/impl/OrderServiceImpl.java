@@ -13,6 +13,8 @@ import com.ecommerce.orderinventory.repository.ProductRepository;
 import com.ecommerce.orderinventory.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -83,16 +85,15 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public OrderResponse getById(Long id) {
         return toResponse(findOrderOrThrow(id));
     }
 
     @Override
-    public List<OrderResponse> getAll() {
-        return orderRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    @Transactional(readOnly = true)
+    public Page<OrderResponse> getAll(Pageable pageable) {
+        return orderRepository.findAll(pageable).map(this::toResponse);
     }
 
     @Override

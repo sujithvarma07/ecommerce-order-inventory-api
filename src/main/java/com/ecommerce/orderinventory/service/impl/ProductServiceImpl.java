@@ -12,6 +12,10 @@ import com.ecommerce.orderinventory.repository.ProductRepository;
 import com.ecommerce.orderinventory.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,29 +48,28 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(cacheNames = "products", key = "#id")
     public ProductResponse getById(Long id) {
         return toResponse(findProductOrThrow(id));
     }
 
     @Override
-    public List<ProductResponse> getAll() {
-        return productRepository.findAll()
-                .stream()
-                .map(this::toResponse)
-                .toList();
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getAll(Pageable pageable) {
+        return productRepository.findAll(pageable).map(this::toResponse);
     }
 
     @Override
-    public List<ProductResponse> getByCategory(Long categoryId) {
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getByCategory(Long categoryId, Pageable pageable) {
         findCategoryOrThrow(categoryId);
-        return productRepository.findByCategoryId(categoryId)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        return productRepository.findByCategoryId(categoryId, pageable).map(this::toResponse);
     }
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "products", key = "#id")
     public ProductResponse update(Long id, ProductRequest request) {
         Product product = findProductOrThrow(id);
         Category category = findCategoryOrThrow(request.getCategoryId());
@@ -80,6 +83,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "products", key = "#id")
     public void delete(Long id) {
         Product product = findProductOrThrow(id);
         productRepository.delete(product);
@@ -88,6 +92,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "products", key = "#id")
     public ProductResponse adjustStock(Long id, int delta) {
         Product product = findProductOrThrow(id);
         int newQuantity = product.getStockQuantity() + delta;
@@ -105,6 +110,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProductResponse> getLowStock(int threshold) {
         return productRepository.findByStockQuantityLessThanEqual(threshold)
                 .stream()
