@@ -10,6 +10,12 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+/**
+ * Seeds two demo accounts on startup, if they don't already exist:
+ * an ADMIN account (catalog management, order fulfillment) and a USER account
+ * (placing orders as a regular customer). Both usernames/passwords come from
+ * required environment variables — see README.md > Configuration.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -24,19 +30,30 @@ public class AdminUserSeeder implements CommandLineRunner {
     @Value("${app.security.admin-password}")
     private String adminPassword;
 
+    @Value("${app.security.customer-username}")
+    private String customerUsername;
+
+    @Value("${app.security.customer-password}")
+    private String customerPassword;
+
     @Override
     public void run(String... args) {
-        if (appUserRepository.findByUsername(adminUsername).isPresent()) {
+        seedIfMissing(adminUsername, adminPassword, Role.ADMIN);
+        seedIfMissing(customerUsername, customerPassword, Role.USER);
+    }
+
+    private void seedIfMissing(String username, String rawPassword, Role role) {
+        if (appUserRepository.findByUsername(username).isPresent()) {
             return;
         }
 
-        AppUser admin = new AppUser();
-        admin.setUsername(adminUsername);
-        admin.setPassword(passwordEncoder.encode(adminPassword));
-        admin.setRole(Role.ADMIN);
-        admin.setEnabled(true);
+        AppUser user = new AppUser();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(rawPassword));
+        user.setRole(role);
+        user.setEnabled(true);
 
-        appUserRepository.save(admin);
-        log.info("Seeded default admin user '{}'", adminUsername);
+        appUserRepository.save(user);
+        log.info("Seeded default {} user '{}'", role, username);
     }
 }

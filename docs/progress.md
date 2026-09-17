@@ -39,11 +39,19 @@ Running log of work on the Order & Inventory API, tracked against the 4-week pla
 - Tests were updated to assert against the new exception types rather than `ResponseStatusException`.
 - Stock deduction and restoration both go through `ProductRepository.save`, so the same optimistic-locking (`@Version`) protection from the entity-optimization work above also covers these paths under concurrent updates.
 
-## Week 3 — Security, Performance & Integration (in progress)
+## Week 3 — Security, Performance & Integration ✅ complete
 
 - [x] Authentication & authorization (part 1/3) — added Spring Security with HTTP Basic auth and role-based access control: `GET` endpoints stay public, write operations (`POST`/`PUT`/`PATCH`/`DELETE`) require the `ADMIN` role. Credentials are stored in a new `app_users` table (BCrypt-hashed passwords) via a database-backed `UserDetailsService`, with a default admin user seeded on startup for local dev. Authentication/authorization failures (401/403) go through the same standardized JSON error shape as the rest of the API rather than Spring Security's defaults.
 - [x] Performance (part 2/3) — the three list endpoints (`GET /categories`, `GET /products`, `GET /orders`) now return a paginated, sortable `Page` instead of a bare array; added `@Cacheable`/`@CacheEvict` around the by-id lookups for categories and products (evicted on every write, including stock adjustment, so nothing stale is ever served); tuned HikariCP explicitly per profile instead of leaving it on defaults, with the Postgres pool size overridable via env vars; marked all read-only service methods `@Transactional(readOnly = true)`
-- [ ] Integration & polish (part 3/3) — CORS configuration, API documentation (OpenAPI/Swagger), rate limiting
+- [x] Integration & polish (part 3/3) — CORS restricted to an explicit origin allowlist (`CORS_ALLOWED_ORIGINS`), interactive API docs via springdoc/Swagger UI at `/swagger-ui.html`, and a per-IP fixed-window rate limiter (`RATE_LIMIT_PER_MINUTE`, default 120/min) on `/api/v1/**` returning 429 in the standard error shape
+
+### Response to review feedback (after Week 1/2 review)
+
+- **Security — no committed credentials**: `application.yml` no longer has *any* default admin/DB password. `ADMIN_USERNAME`/`ADMIN_PASSWORD`/`CUSTOMER_USERNAME`/`CUSTOMER_PASSWORD` and the Postgres `DB_USERNAME`/`DB_PASSWORD` are now required environment variables with no fallback — the app fails to start rather than silently running with a weak default. The only credentials still in the repo are obviously-fake fixture values (`test-admin`/`test-customer`) gated behind a `test` Spring profile used solely by the automated test suite against a throwaway in-memory database. See README > Configuration for the full list and how to set them.
+- **Performance — measurable results**: added `scripts/benchmark.sh` and `docs/performance-notes.md`, which document exactly how to reproduce and capture before/after numbers for the caching and indexing work (cache hit vs. miss timing, paginated list timing, `EXPLAIN ANALYZE` for confirming index usage on Postgres). The results table in that doc is intentionally left for whoever runs it locally to fill in — this environment doesn't have a way to run the live app against real data volume, so the honest thing was to build the measurement tooling and be explicit about that rather than typing in numbers that weren't actually measured.
+- **Integration — auth/authorization/orders/inventory working together, plus concurrency**: this surfaced a real gap in the part-1 authorization rules (order placement had been lumped in with admin-only catalog writes, which would have blocked ordinary customers from ordering anything). Fixed by splitting the rule: placing an order now only requires being logged in as *any* role, while changing an order's status or deleting it stays admin-only. A new `USER`-role demo account (`CUSTOMER_USERNAME`/`CUSTOMER_PASSWORD`) was added specifically to exercise this. Two new integration tests back this:
+  - `OrderInventoryFlowIntegrationTest` — drives the real HTTP stack through the full flow: anonymous/customer/admin requests against categories, products, and orders, confirming public reads, admin-only catalog writes, authenticated-but-not-admin order placement, stock deduction on order creation, and stock restoration on cancellation all work together correctly.
+  - `ProductOptimisticLockingIntegrationTest` — runs two concurrent stock updates against the same product row from separate threads/transactions (synchronized with latches so both read the same starting version before either writes) and asserts exactly one succeeds while the other fails with an optimistic locking exception, confirming the `@Version` field from Week 2 actually prevents a lost update under real concurrency rather than only passing in single-threaded unit tests.
 
 ### Notes
 
@@ -52,6 +60,7 @@ Running log of work on the Order & Inventory API, tracked against the 4-week pla
 - `ProductRepository.findByCategoryId` and the plain `getAll()` service methods became paginated overloads (`Pageable` in, `Page<...>` out) rather than staying as separate unpaginated methods, to avoid maintaining two versions of the same query.
 - Caching is in-process (`ConcurrentMapCacheManager`) for now, which is correct for a single instance; swapping in a shared cache for a multi-instance deployment is a `CacheManager` bean change, not a service-layer change.
 - Tests were extended to cover the new paginated `getAll`/`getByCategory` methods using `PageImpl`/`PageRequest`.
+- Rate limiting and the request-logging filter are both plain `OncePerRequestFilter` `@Component`s (consistent with the existing `RequestLoggingFilter` pattern) rather than being wired into the Spring Security filter chain explicitly — simplest option that still applies to every request.
 
 ## Week 4 — Testing, Deployment & Documentation
 

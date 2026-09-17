@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Order & Inventory API",
-    "description": "Requests covering the Category, Product, and Order endpoints, including the Week 2 stock-adjustment, low-stock, and order-status-transition additions, plus a few deliberate error cases exercising the global exception handler. Write operations (POST/PUT/PATCH/DELETE) require the collection-level Basic Auth credentials below; GET requests are public.",
+    "description": "Requests covering the Category, Product, and Order endpoints, including stock-adjustment, low-stock, order-status-transition, pagination, and role-based authorization, plus a few deliberate error cases exercising the global exception handler. Catalog/fulfillment writes use the admin credentials at the collection level; placing an order overrides to the customer credentials, since that only needs any authenticated user. Fill in adminPassword/customerPassword with whatever you set ADMIN_PASSWORD/CUSTOMER_PASSWORD to when starting the app — nothing is pre-filled here.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -14,7 +14,9 @@
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:8080" },
     { "key": "adminUsername", "value": "admin" },
-    { "key": "adminPassword", "value": "admin123" },
+    { "key": "adminPassword", "value": "" },
+    { "key": "customerUsername", "value": "customer" },
+    { "key": "customerPassword", "value": "" },
     { "key": "categoryId", "value": "1" },
     { "key": "productId", "value": "1" },
     { "key": "orderId", "value": "1" }
@@ -191,13 +193,21 @@
         {
           "name": "Create Order",
           "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                { "key": "username", "value": "{{customerUsername}}" },
+                { "key": "password", "value": "{{customerPassword}}" }
+              ]
+            },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"customerName\": \"Jane Doe\",\n  \"customerEmail\": \"jane@example.com\",\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 3 }\n  ]\n}"
             },
-            "url": "{{baseUrl}}/api/v1/orders"
+            "url": "{{baseUrl}}/api/v1/orders",
+            "description": "Placing an order only requires being logged in — the customer account (not the admin one) is used here on purpose."
           }
         },
         {
@@ -327,6 +337,40 @@
             },
             "url": "{{baseUrl}}/api/v1/categories",
             "description": "No credentials supplied — write endpoints require ADMIN authentication."
+          }
+        },
+        {
+          "name": "Create Order - Unauthorized (401)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerName\": \"Jane Doe\",\n  \"customerEmail\": \"jane@example.com\",\n  \"items\": [\n    { \"productId\": 1, \"quantity\": 1 }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/orders",
+            "description": "No credentials supplied — placing an order requires being logged in, even though browsing the catalog doesn't."
+          }
+        },
+        {
+          "name": "Update Order Status - Forbidden as Customer (403)",
+          "request": {
+            "auth": {
+              "type": "basic",
+              "basic": [
+                { "key": "username", "value": "{{customerUsername}}" },
+                { "key": "password", "value": "{{customerPassword}}" }
+              ]
+            },
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CONFIRMED\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}/status",
+            "description": "The customer who placed an order can't push it through fulfillment themselves — status changes are staff-only (ADMIN role)."
           }
         }
       ]

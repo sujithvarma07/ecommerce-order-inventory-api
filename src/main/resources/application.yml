@@ -46,8 +46,8 @@ spring:
 
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:order_inventory_db}
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: OrderInventoryPool
@@ -67,13 +67,23 @@ spring:
         format_sql: true
     database-platform: org.hibernate.dialect.PostgreSQLDialect
 
+---
 server:
   port: 8080
 
+# Credentials below are intentionally NOT given defaults — every environment (including local dev)
+# must supply them via environment variables rather than a committed value. See README.md >
+# Configuration for the full list and how to set them.
 app:
   security:
-    admin-username: ${ADMIN_USERNAME:admin}
-    admin-password: ${ADMIN_PASSWORD:admin123}
+    admin-username: ${ADMIN_USERNAME}
+    admin-password: ${ADMIN_PASSWORD}
+    customer-username: ${CUSTOMER_USERNAME}
+    customer-password: ${CUSTOMER_PASSWORD}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+  rate-limit:
+    requests-per-minute: ${RATE_LIMIT_PER_MINUTE:120}
 
 management:
   endpoints:
@@ -88,3 +98,19 @@ logging:
   level:
     com.ecommerce.orderinventory: INFO
     org.hibernate.SQL: WARN
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+
+# Fixture credentials for the automated test suite only, running against the H2 in-memory database
+# that's torn down after each run. Not a real secret and never used by a deployed environment — see
+# the Configuration section in README.md for how real environments supply these via env vars instead.
+app:
+  security:
+    admin-username: test-admin
+    admin-password: test-admin-pass
+    customer-username: test-customer
+    customer-password: test-customer-pass

@@ -32,9 +32,14 @@ Validation failures (invalid request bodies) additionally include a `fieldErrors
 | Status | When |
 |--------|------|
 | 400 | Request body fails bean validation (`@Valid`) |
+| 401 | No/invalid credentials on an endpoint that requires authentication (`RestAuthenticationEntryPoint`) |
+| 403 | Authenticated, but the account's role doesn't allow the action (`RestAccessDeniedHandler`) |
 | 404 | The requested resource doesn't exist (`ResourceNotFoundException`) |
-| 409 | Conflict — duplicate name/SKU, insufficient stock, or a concurrent-update conflict (`DuplicateResourceException`, `InsufficientStockException`, or an optimistic locking failure) |
+| 409 | Conflict — duplicate name/SKU, insufficient stock, invalid order-status transition, or a concurrent-update conflict (`DuplicateResourceException`, `InsufficientStockException`, `InvalidOrderStateException`, or an optimistic locking failure) |
+| 429 | Too many requests from this client within the current rate-limit window (`RateLimitFilter`) |
 | 500 | Anything unexpected |
+
+401/403/429 are produced outside `GlobalExceptionHandler` (by `RestAuthenticationEntryPoint`, `RestAccessDeniedHandler`, and `RateLimitFilter` respectively, since those run in the security/filter layer before a request reaches a controller) but build the exact same `ApiErrorResponse` shape, so callers never see a different error format depending on which layer rejected the request.
 
 ## Why a custom exception hierarchy instead of `ResponseStatusException`
 
