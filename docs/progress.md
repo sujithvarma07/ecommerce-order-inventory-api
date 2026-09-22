@@ -62,9 +62,19 @@ Running log of work on the Order & Inventory API, tracked against the 4-week pla
 - Tests were extended to cover the new paginated `getAll`/`getByCategory` methods using `PageImpl`/`PageRequest`.
 - Rate limiting and the request-logging filter are both plain `OncePerRequestFilter` `@Component`s (consistent with the existing `RequestLoggingFilter` pattern) rather than being wired into the Spring Security filter chain explicitly — simplest option that still applies to every request.
 
-## Week 4 — Testing, Deployment & Documentation
+## Week 4 — Testing, Deployment & Documentation (in progress)
 
-- [ ] Not started
+- [x] Expanded testing (part 1/3) — closed real gaps rather than padding numbers:
+  - Added the missing not-found/conflict edge-case unit tests on every service write method that didn't already have one (`update`/`delete` on Category and Product, `getByCategory` on Product, `delete` on Order including the stock-restoration and already-shipped paths).
+  - Added a new web-layer test suite (`src/test/java/.../controller/`, `@WebMvcTest`) for all three controllers — request validation (400 + field errors), not-found/conflict responses (404/409 in the standard error shape), and success responses (201/204) — a layer that had no direct test coverage before (it was only exercised indirectly through the two integration tests).
+  - Added the JaCoCo Maven plugin so `mvn test` produces a line/branch coverage report at `target/site/jacoco/index.html` — coverage is now something you can actually look at, not just estimate.
+- [ ] Deployment (part 2/3) — containerization, deployment docs
+- [ ] Documentation polish (part 3/3) — final README/architecture pass
+
+### Notes
+
+- `@WebMvcTest` slices disable the full Spring Security filter chain (`@AutoConfigureMockMvc(addFilters = false)`) since these tests are about the controller/validation/error-handling layer, not authorization — authorization is already covered end-to-end by `OrderInventoryFlowIntegrationTest` from Week 3.
+- No change to production code was needed for this batch — purely additive test coverage plus the JaCoCo build step.
 
 ---
 

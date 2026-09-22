@@ -133,6 +133,60 @@ class ProductServiceImplTest {
     }
 
     @Test
+    void delete_throwsNotFound_whenMissing() {
+        when(productRepository.findById(42L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.delete(42L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("not found");
+
+        verify(productRepository, never()).delete(any());
+    }
+
+    @Test
+    void update_updatesProduct_whenFoundAndCategoryExists() {
+        ProductRequest request = new ProductRequest("Wireless Mouse", "Updated desc", "WM-1001",
+                new BigDecimal("17.99"), 200, 1L);
+
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProductResponse response = productService.update(1L, request);
+
+        assertThat(response.getPrice()).isEqualByComparingTo("17.99");
+        assertThat(response.getStockQuantity()).isEqualTo(200);
+        assertThat(product.getDescription()).isEqualTo("Updated desc");
+    }
+
+    @Test
+    void update_throwsNotFound_whenProductMissing() {
+        ProductRequest request = new ProductRequest("Wireless Mouse", "desc", "WM-1001",
+                new BigDecimal("17.99"), 200, 1L);
+        when(productRepository.findById(42L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.update(42L, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Product not found");
+
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
+    void update_throwsNotFound_whenCategoryMissing() {
+        ProductRequest request = new ProductRequest("Wireless Mouse", "desc", "WM-1001",
+                new BigDecimal("17.99"), 200, 99L);
+        when(productRepository.findById(1L)).thenReturn(Optional.of(product));
+        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.update(1L, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Category not found");
+
+        verify(productRepository, never()).save(any());
+    }
+
+    @Test
     void adjustStock_increasesQuantity_whenDeltaIsPositive() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(productRepository.save(any(Product.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -179,6 +233,16 @@ class ProductServiceImplTest {
 
         assertThat(response.getTotalElements()).isEqualTo(1);
         assertThat(response.getContent().get(0).getCategoryId()).isEqualTo(1L);
+    }
+
+    @Test
+    void getByCategory_throwsNotFound_whenCategoryMissing() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> productService.getByCategory(99L, pageable))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("Category not found");
     }
 
     @Test

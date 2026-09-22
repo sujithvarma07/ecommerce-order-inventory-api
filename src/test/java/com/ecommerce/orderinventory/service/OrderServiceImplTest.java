@@ -186,4 +186,61 @@ class OrderServiceImplTest {
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("not found");
     }
+
+    @Test
+    void delete_removesOrder_andRestoresStock_whenPending() {
+        OrderItem item = new OrderItem();
+        item.setProduct(product);
+        item.setQuantity(3);
+        item.setUnitPrice(product.getPrice());
+        item.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(3)));
+
+        Order order = new Order();
+        order.setId(8L);
+        order.setStatus(OrderStatus.PENDING);
+        order.setTotalAmount(BigDecimal.valueOf(60));
+        order.addItem(item);
+
+        when(orderRepository.findById(8L)).thenReturn(Optional.of(order));
+
+        orderService.delete(8L);
+
+        assertThat(product.getStockQuantity()).isEqualTo(13);
+        verify(productRepository).save(product);
+        verify(orderRepository).delete(order);
+    }
+
+    @Test
+    void delete_removesOrder_withoutRestoringStock_whenAlreadyShipped() {
+        OrderItem item = new OrderItem();
+        item.setProduct(product);
+        item.setQuantity(3);
+        item.setUnitPrice(product.getPrice());
+        item.setSubtotal(product.getPrice().multiply(BigDecimal.valueOf(3)));
+
+        Order order = new Order();
+        order.setId(9L);
+        order.setStatus(OrderStatus.SHIPPED);
+        order.setTotalAmount(BigDecimal.valueOf(60));
+        order.addItem(item);
+
+        when(orderRepository.findById(9L)).thenReturn(Optional.of(order));
+
+        orderService.delete(9L);
+
+        assertThat(product.getStockQuantity()).isEqualTo(10);
+        verify(productRepository, never()).save(any());
+        verify(orderRepository).delete(order);
+    }
+
+    @Test
+    void delete_throwsNotFound_whenMissing() {
+        when(orderRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.delete(404L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("not found");
+
+        verify(orderRepository, never()).delete(any());
+    }
 }

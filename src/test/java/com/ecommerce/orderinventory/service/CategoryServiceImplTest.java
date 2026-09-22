@@ -107,4 +107,40 @@ class CategoryServiceImplTest {
 
         verify(categoryRepository).delete(category);
     }
+
+    @Test
+    void delete_throwsNotFound_whenMissing() {
+        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> categoryService.delete(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("not found");
+
+        verify(categoryRepository, never()).delete(any());
+    }
+
+    @Test
+    void update_updatesCategory_whenFound() {
+        CategoryRequest request = new CategoryRequest("Electronics & Gadgets", "Updated description");
+        when(categoryRepository.findById(1L)).thenReturn(Optional.of(category));
+        when(categoryRepository.save(any(Category.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CategoryResponse response = categoryService.update(1L, request);
+
+        assertThat(response.getName()).isEqualTo("Electronics & Gadgets");
+        assertThat(response.getDescription()).isEqualTo("Updated description");
+        assertThat(category.getName()).isEqualTo("Electronics & Gadgets");
+    }
+
+    @Test
+    void update_throwsNotFound_whenMissing() {
+        CategoryRequest request = new CategoryRequest("Doesn't matter", null);
+        when(categoryRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> categoryService.update(99L, request))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessageContaining("not found");
+
+        verify(categoryRepository, never()).save(any());
+    }
 }

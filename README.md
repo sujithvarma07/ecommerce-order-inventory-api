@@ -195,14 +195,15 @@ See [`docs/performance-notes.md`](docs/performance-notes.md) for how to reproduc
 
 ## Testing
 
-Two layers of automated tests:
+Three layers of automated tests:
 
-- **Unit tests** (`src/test/java/.../service/`) — Mockito-based, no Spring context, covering service-layer business logic in isolation (validation, exceptions, business rules).
+- **Unit tests** (`src/test/java/.../service/`) — Mockito-based, no Spring context, covering service-layer business logic in isolation (validation, exceptions, business rules, including the not-found/conflict edge cases on every write method).
+- **Web-layer (controller) tests** (`src/test/java/.../controller/`) — `@WebMvcTest`, with the service layer mocked and security filters disabled, covering request validation and the exact status code/response shape the controller produces (400 with field errors, 404/409 with the standardized error body, 201/204 on success) independent of both business logic and security, which are covered by the other two layers.
 - **Integration tests** (`src/test/java/.../integration/`) — real Spring context against the H2 in-memory database (`dev` + `test` profiles):
   - `OrderInventoryFlowIntegrationTest` drives the full stack over real HTTP: public catalog browsing, admin-only catalog writes, authenticated-but-not-admin order placement, stock deduction on order creation, and stock restoration on cancellation — the actual flows called out for Week 3 integration testing.
   - `ProductOptimisticLockingIntegrationTest` runs two concurrent stock updates against the same product from separate threads/transactions and asserts that exactly one succeeds while the other fails with an optimistic locking exception, rather than either silently overwriting the other (a lost update) — verifying the `@Version` field added in Week 2 actually does its job under real concurrency, not just in a single-threaded unit test.
 
-Run everything with `mvn test`.
+Run everything with `mvn test`. A JaCoCo coverage report is generated automatically on the same command at `target/site/jacoco/index.html` — open it in a browser to see line/branch coverage per class.
 
 ## API testing
 
