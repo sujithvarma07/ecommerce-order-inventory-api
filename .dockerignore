@@ -1,0 +1,12 @@
+target/
+*.log
+.git/
+.gitignore
+.idea/
+*.iml
+.vscode/
+.DS_Store
+scripts/set-local-env.sh
+.env
+docs/
+README.md

@@ -68,13 +68,28 @@ Running log of work on the Order & Inventory API, tracked against the 4-week pla
   - Added the missing not-found/conflict edge-case unit tests on every service write method that didn't already have one (`update`/`delete` on Category and Product, `getByCategory` on Product, `delete` on Order including the stock-restoration and already-shipped paths).
   - Added a new web-layer test suite (`src/test/java/.../controller/`, `@WebMvcTest`) for all three controllers — request validation (400 + field errors), not-found/conflict responses (404/409 in the standard error shape), and success responses (201/204) — a layer that had no direct test coverage before (it was only exercised indirectly through the two integration tests).
   - Added the JaCoCo Maven plugin so `mvn test` produces a line/branch coverage report at `target/site/jacoco/index.html` — coverage is now something you can actually look at, not just estimate.
-- [ ] Deployment (part 2/3) — containerization, deployment docs
-- [ ] Documentation polish (part 3/3) — final README/architecture pass
+- [x] Deployment (part 2/3) — added a multi-stage `Dockerfile` (Maven build stage, then a slim JRE runtime stage with no JDK/Maven in the final image, running as a non-root user) and a `docker-compose.yml` that runs the app alongside a real Postgres container. `.env.example` documents every variable Compose needs, with no real values committed (same rule as the rest of the app's configuration); `.env` itself is gitignored. `docs/deployment.md` covers running it locally via Compose, building/running the image directly, and what stays the same versus what changes when this eventually moves to a real cloud target (the image doesn't change, only where the environment variables point).
+- [x] Documentation polish (part 3/3) — final README/architecture pass
 
 ### Notes
 
 - `@WebMvcTest` slices disable the full Spring Security filter chain (`@AutoConfigureMockMvc(addFilters = false)`) since these tests are about the controller/validation/error-handling layer, not authorization — authorization is already covered end-to-end by `OrderInventoryFlowIntegrationTest` from Week 3.
-- No change to production code was needed for this batch — purely additive test coverage plus the JaCoCo build step.
+- No change to production code was needed for the testing batch — purely additive test coverage plus the JaCoCo build step.
+- The container image defaults to `SPRING_PROFILES_ACTIVE=postgres` rather than the H2 `dev` profile, since a containerized deployment is assumed to run against a real database; the healthcheck in both the `Dockerfile`'s expectations and `docker-compose.yml` hits the same `/actuator/health` endpoint most hosting platforms would use to decide an instance is ready for traffic.
+- A specific cloud hosting target (which provider, managed Postgres vs. self-hosted, etc.) is intentionally left open in `docs/deployment.md` rather than guessed at — the two things that don't change regardless of target (real env-var-supplied credentials, a reachable Postgres instance) are documented; the platform-specific setup is a decision for whoever owns that call.
+
+- **Documentation polish (part 3/3)**: added `docs/architecture.md` — layered structure, a full request-flow trace through placing an order, the domain model (Category/Product/Order/OrderItem/AppUser relationships), the cross-cutting concerns (error shape, rate limiting, caching, connection pooling) and the reasoning behind a handful of decisions that aren't obvious from the code alone (layered vs. hexagonal, DTOs everywhere, optimistic locking over pessimistic, in-process cache before Redis). Reworked the README: `## Status` now reflects that all four planned weeks are complete rather than "work in progress", added a table of contents (the README is long enough now that one earns its place), and linked the new architecture doc from both the new `## Architecture` section and the `## Documentation` list.
+
+## Project status: complete
+
+All four planned weeks are done:
+
+1. **Week 1** — project setup, entities, repositories, initial CRUD REST APIs for categories and products.
+2. **Week 2** — orders and inventory business logic, DB relationships, validation, global error handling, pagination.
+3. **Week 3** — security (Spring Security, role-based access control, seeded accounts), performance (caching, connection pooling, rate limiting), and the review-feedback pass (no committed secrets, benchmarking tooling instead of invented numbers, integration + concurrency tests, an authorization gap fix).
+4. **Week 4** — expanded test coverage (controller-layer tests, edge cases, JaCoCo), containerized deployment (Dockerfile, Docker Compose with Postgres, deployment docs), and this final documentation pass.
+
+Nothing here is a hard stop — the codebase is in a state where the natural next steps (a CI pipeline, a shared cache for multi-instance deployments, moving the container to an actual hosting target) are called out in the docs above as explicit, deliberate "not done yet, and here's what it'd take" rather than gaps that were missed.
 
 ---
 

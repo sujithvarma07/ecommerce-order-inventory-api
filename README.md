@@ -2,9 +2,33 @@
 
 A REST API for managing e-commerce orders, inventory, and product catalog, built with Spring Boot.
 
+## Contents
+
+- [Status](#status)
+- [Tech Stack](#tech-stack)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Configuration](#configuration)
+- [API Endpoints](#api-endpoints)
+- [Pagination & sorting](#pagination--sorting)
+- [Caching](#caching)
+- [Authentication & authorization](#authentication--authorization)
+- [CORS](#cors)
+- [Rate limiting](#rate-limiting)
+- [API documentation (Swagger / OpenAPI)](#api-documentation-swagger--openapi)
+- [Error responses](#error-responses)
+- [Monitoring](#monitoring)
+- [Connection pooling](#connection-pooling)
+- [Performance](#performance)
+- [Testing](#testing)
+- [API testing](#api-testing)
+- [Deployment](#deployment)
+- [Documentation](#documentation)
+
 ## Status
 
-Work in progress. This project is being built out incrementally — see `docs/progress.md` for what's done so far and what's next.
+Feature-complete across all four planned build phases: core CRUD APIs, business logic and persistence, security/performance/integration hardening, and now testing, containerized deployment, and documentation. See `docs/progress.md` for the full week-by-week log of what was built and why.
 
 ## Tech Stack
 
@@ -15,6 +39,10 @@ Work in progress. This project is being built out incrementally — see `docs/pr
 - PostgreSQL (H2 for local dev)
 - Maven
 - Lombok
+
+## Architecture
+
+Standard layered structure — filters, then controller, then service, then repository — with DTOs keeping the entities off the API surface. See [`docs/architecture.md`](docs/architecture.md) for the request flow through a full example (placing an order), the domain model, and the reasoning behind a few of the less obvious decisions (why optimistic locking over pessimistic, why an in-process cache instead of starting with Redis, and so on).
 
 ## Project Structure
 
@@ -209,10 +237,23 @@ Run everything with `mvn test`. A JaCoCo coverage report is generated automatica
 
 A Postman collection covering every endpoint above — plus a handful of deliberate error-case requests (duplicate SKU, validation failure, not-found, insufficient stock, invalid status transition, unauthorized write) — is at [`docs/postman/order-inventory-api.postman_collection.json`](docs/postman/order-inventory-api.postman_collection.json). Import it into Postman and set the `baseUrl`, `adminUsername`/`adminPassword`, and `customerUsername`/`customerPassword` collection variables to match whatever you exported for `ADMIN_USERNAME`/`ADMIN_PASSWORD`/`CUSTOMER_USERNAME`/`CUSTOMER_PASSWORD` when starting the app.
 
+## Deployment
+
+The app ships with a multi-stage `Dockerfile` (Maven build stage, then a slim JRE runtime stage — no JDK or Maven in the final image) and a `docker-compose.yml` that runs it alongside a real Postgres container, which is a much closer approximation of a real deployment than the H2 `dev` profile used day-to-day.
+
+```bash
+cp .env.example .env   # fill in your own values — .env is gitignored
+docker compose up --build
+```
+
+See [`docs/deployment.md`](docs/deployment.md) for the full walkthrough, including running the image without Compose and what carries over to a real cloud deployment (short version: the image itself doesn't change, only the environment variables pointing it at a real database and real credentials do).
+
 ## Documentation
 
+- [`docs/architecture.md`](docs/architecture.md) — layered structure, request flow, domain model, and the reasoning behind key design decisions
 - [`docs/coding-standards.md`](docs/coding-standards.md) — coding conventions used in this project
 - [`docs/api-error-format.md`](docs/api-error-format.md) — standardized error response shape
 - [`docs/performance-notes.md`](docs/performance-notes.md) — how to reproduce and capture performance results
+- [`docs/deployment.md`](docs/deployment.md) — building and running the app as a container, locally and as a starting point for a real deployment
 - [`docs/postman/order-inventory-api.postman_collection.json`](docs/postman/order-inventory-api.postman_collection.json) — Postman collection for manual API testing
 - [`docs/progress.md`](docs/progress.md) — running log of what's been built
